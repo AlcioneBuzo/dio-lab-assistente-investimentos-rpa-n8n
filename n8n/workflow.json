@@ -1,0 +1,105 @@
+{
+  "name": "Assistente de Investimentos com RPA e IA Generativa",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "Clientes",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -656,
+        -272
+      ],
+      "id": "360a095e-f11d-42db-8209-51b3da646f42",
+      "name": "Receber clientes",
+      "webhookId": "0666b80d-eeaa-40af-ba06-2515176799fc"
+    },
+    {
+      "parameters": {
+        "url": "https://digitalinnovationone.github.io/dio-lab-assistente-investimentos-rpa-n8n/data.csv",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -384,
+        -272
+      ],
+      "id": "6e4df587-b0be-40f9-8cd2-c44d3c67a6b6",
+      "name": "Consulta CSV"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst csv = $('Consulta CSV').first().json.data;\nconst clientes = $('Receber clientes').first().json.body.clientes;\n\n// Transformar o CSV em uma lista de investimentos\nconst linhas = csv.trim().split(/\\r?\\n/);\n\nconst investimentos = linhas.slice(1).map(linha => {\n  const [perfil, produto, minimo, rentabilidade] = linha.split(',');\n\n  return {\n    perfil: perfil.trim(),\n    produto: produto.trim(),\n    minimo: Number(minimo),\n    rentabilidade: rentabilidade.trim()\n  };\n});\n\n// Converter saldo brasileiro para número\nfunction converterSaldo(valor) {\n  return Number(\n    valor.replace('R$', '').replace(/\\./g, '').replace(',', '.').trim()\n  );\n}\n\n// Cruzar cada cliente com os investimentos compatíveis\nreturn clientes.map(cliente => {\n  const saldo = converterSaldo(cliente.saldo);\n\n  const opcoes = investimentos.filter(investimento =>\n    investimento.perfil === cliente.perfil &&\n    saldo >= investimento.minimo\n  );\n\n  return {\n    json: {\n      ...cliente,\n      investimentos: opcoes\n    }\n  };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        -272
+      ],
+      "id": "9840cf77-ad29-4f60-ace5-30ad09806cc0",
+      "name": "Processar CSV e Cruzamento de Perfis"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst clientes = $input.all();\n\nreturn clientes.map(item => {\n  const cliente = item.json;\n\n  const descricoes = {\n    Conservador: \"priorizar estabilidade e segurança\",\n    Moderado: \"equilibrar segurança e potencial de crescimento\",\n    Arrojado: \"buscar maior potencial de retorno, aceitando mais riscos\"\n  };\n\n  const produtos = cliente.investimentos\n    .map(investimento => investimento.produto)\n    .join(\", \");\n\n  const mensagem = `Olá, ${cliente.nome}!\n\nConsiderando seu perfil ${cliente.perfil} e seu saldo de ${cliente.saldo}, identificamos as seguintes opções para análise:\n\n${produtos || \"Nenhuma opção encontrada para seu saldo atual.\"}\n\nPara seu perfil, o objetivo é ${descricoes[cliente.perfil] || \"avaliar alternativas de investimento\"}.\n\nEsta é uma simulação educacional, não uma recomendação financeira individualizada.`;\n\n  return {\n    json: {\n      ...cliente,\n      mensagem: mensagem\n    }\n  };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        48,
+        -272
+      ],
+      "id": "f02a6752-01d0-4ecb-a67b-517ffa6729c1",
+      "name": "Gerar Mensagens Personalizadas"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Receber clientes": {
+      "main": [
+        [
+          {
+            "node": "Consulta CSV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consulta CSV": {
+      "main": [
+        [
+          {
+            "node": "Processar CSV e Cruzamento de Perfis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Processar CSV e Cruzamento de Perfis": {
+      "main": [
+        [
+          {
+            "node": "Gerar Mensagens Personalizadas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "5e5a2336-7c78-4161-8641-95c24bc2bd01",
+  "id": "TKGVWSHbOtHPUlAW",
+  "tags": []
+}
